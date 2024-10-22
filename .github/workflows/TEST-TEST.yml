@@ -1,0 +1,25 @@
+name: Test Workflow
+on:
+  schedule:
+    - cron: '*/3 * * * *' # Equivalent to Bamboo's 180 seconds polling period
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  spring:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+  default_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+# Note: The concept of branches in Bamboo does not have a direct equivalent in GitHub Actions.
+# You will need to handle branch creation and deletion manually or use separate scripts/actions.
+
+# Note: Notifications and certain Bamboo-specific features like JIRA linking, 
+# concurrent build plugin, and custom build expiry configurations are not directly translatable 
+# to GitHub Actions and need to be managed outside of the workflow.
