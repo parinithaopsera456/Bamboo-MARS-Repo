@@ -1,0 +1,98 @@
+name: Build the rocket
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: '*/60 * * * *' # Equivalent to Bamboo polling every 60 minutes
+
+jobs:
+  checkout_code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          repository: HON-BA/bmstools-app.deployment
+          ref: master
+          fetch-depth: 0 # Fetch all, equivalent to Bamboo fetch-all: true
+
+  build_and_package:
+    needs: checkout_code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Scripts
+        run: pwsh bootstrap.ps1
+    artifacts:
+      paths:
+        - BuildArtifacts/**
+
+  run_quality_tools:
+    needs: checkout_code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Quality Tools
+        run: pwsh bootstrap.ps1 -Target Quality
+    artifacts:
+      paths:
+        - build/BuildResults/CodeCoverageReports/*.*
+
+  run_oss_scan:
+    needs: checkout_code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run OSS Scan
+        run: pwsh bootstrap.ps1 -Target OpenSourceSoftwareScan
+
+  run_security_tools:
+    needs: checkout_code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Security Tools
+        run: pwsh bootstrap.ps1 -Target Security
+
+  publish_artifacts:
+    needs: [build_and_package, run_quality_tools, run_oss_scan, run_security_tools]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish Packages
+        run: pwsh bootstrap.ps1 -Target Publish
+
+env:
+  BLACKDUCK_HUB_HOST: ${{ secrets.BLACKDUCK_HUB_HOST }}
+  BLACKDUCK_HUB_PROJECT_ID: ${{ secrets.BLACKDUCK_HUB_PROJECT_ID }}
+  BLACKDUCK_HUB_PROJECT_NAME: ${{ secrets.BLACKDUCK_HUB_PROJECT_NAME }}
+  BLACKDUCK_HUB_USERNAME: ${{ secrets.BLACKDUCK_HUB_USERNAME }}
+  DOCKER_ARTIFACTORY_SOURCEURL_STABLE: ${{ secrets.DOCKER_ARTIFACTORY_SOURCEURL_STABLE }}
+  DOCKER_ARTIFACTORY_SOURCEURL_UNSTABLE: ${{ secrets.DOCKER_ARTIFACTORY_SOURCEURL_UNSTABLE }}
+  DOCKER_DEPLOY_USER: ${{ secrets.DOCKER_DEPLOY_USER }}
+  DOCKER_USER: ${{ secrets.DOCKER_USER }}
+  GENERIC_REPORTS_SOURCEURL_STABLE: ${{ secrets.GENERIC_REPORTS_SOURCEURL_STABLE }}
+  GENERIC_REPORTS_SOURCEURL_UNSTABLE: ${{ secrets.GENERIC_REPORTS_SOURCEURL_UNSTABLE }}
+  NUGET_DEPLOY_SOURCEURL_STABLE: ${{ secrets.NUGET_DEPLOY_SOURCEURL_STABLE }}
+  NUGET_DEPLOY_SOURCEURL_UNSTABLE: ${{ secrets.NUGET_DEPLOY_SOURCEURL_UNSTABLE }}
+  OCTOPUS_PROJECTNAME: ${{ secrets.OCTOPUS_PROJECTNAME }}
+  OCTOPUS_SERVER: ${{ secrets.OCTOPUS_SERVER }}
+  TWISTLOCK_SAASOPS_ACCESSKEYID: ${{ secrets.TWISTLOCK_SAASOPS_ACCESSKEYID }}
+  TWISTLOCK_SAASOPS_SA_NAME: ${{ secrets.TWISTLOCK_SAASOPS_SA_NAME }}
+  TWISTLOCK_SAASOPS_SERVERURL: ${{ secrets.TWISTLOCK_SAASOPS_SERVERURL }}
+  TWISTLOCK_SERVERPORT: ${{ secrets.TWISTLOCK_SERVERPORT }}
+  TWISTLOCK_SERVERURL: ${{ secrets.TWISTLOCK_SERVERURL }}
+  TWISTLOCK_USERNAME: ${{ secrets.TWISTLOCK_USERNAME }}
+
+notifications:
+  job-completed:
+    recipients:
+      - committers
+      - webhook: https://logstash.hon.honeywell.opsera.io/webhook/bamboopipelines
+  job-error:
+    recipients:
+      - committers
+  job-hung:
+    recipients:
+      - committers
+  plan-completed:
+    recipients:
+      - committers
+      - webhook: https://logstash.hon.honeywell.opsera.io/webhook/bamboopipelines
