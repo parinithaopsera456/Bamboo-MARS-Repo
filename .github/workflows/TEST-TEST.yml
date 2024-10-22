@@ -1,0 +1,25 @@
+name: Test Workflow
+
+on:
+  push:
+    branches:
+      - main
+      - test
+  schedule:
+    - cron: '*/3 * * * *' # Equivalent to Bamboo polling every 180 seconds
+
+jobs:
+  spring:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+  default_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+# Note: Direct translations for branch management, notifications, and Jira linking are not available. These have been omitted.
+# GitHub Actions does not support Bamboo's branch management and Jira linking directly.
